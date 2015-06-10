@@ -1,14 +1,14 @@
 <?php
 
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
-use JoakimKejser\OAuth\Request;
+use JoakimKejser\OAuth\OauthRequest;
 
 class RequestTest extends PHPUNIT_Framework_TestCase
 {
 
     public function testToStringNoParameters()
     {
-        $request = new JoakimKejser\OAuth\Request("GET", "http://localhost/index.php");
+        $request = new JoakimKejser\OAuth\OauthRequest("GET", "http://localhost/index.php");
 
         $this->assertEquals("http://localhost/index.php", (String) $request);
 
@@ -16,7 +16,7 @@ class RequestTest extends PHPUNIT_Framework_TestCase
 
     public function testToStringWithParameters()
     {
-        $request = new Request("GET", "http://localhost/index.php", array('a' => '123', 'q' => "as", 'c' => '321'));
+        $request = new OauthRequest("GET", "http://localhost/index.php", array('a' => '123', 'q' => "as", 'c' => '321'));
 
         $this->assertEquals("http://localhost/index.php?a=123&c=321&q=as", (String) $request);
 
@@ -26,14 +26,14 @@ class RequestTest extends PHPUNIT_Framework_TestCase
     {
         $request = $this->getRequest();
 
-        $this->assertEquals(new Request('GET', 'http://localhost/index.php'), $request);
+        $this->assertEquals(new OauthRequest('GET', 'http://localhost/index.php'), $request);
     }
 
     public function testCreateFromRequestPost()
     {
-        $request = Request::createFromRequest(SymfonyRequest::create('/index.php', 'POST', array(), array(), array(), array(), "data=lotsofdata&action=doit"));
+        $request = OauthRequest::createFromRequest(SymfonyRequest::create('/index.php', 'POST', array(), array(), array(), array(), "data=lotsofdata&action=doit"));
 
-        $this->assertEquals(new Request('POST', 'http://localhost/index.php', array('data' => 'lotsofdata', 'action' => 'doit')), $request);
+        $this->assertEquals(new OauthRequest('POST', 'http://localhost/index.php', array('data' => 'lotsofdata', 'action' => 'doit')), $request);
         $this->assertEquals('lotsofdata', $request->getParameter('data'));
         $this->assertEquals('doit', $request->getParameter('action'));
 
@@ -43,10 +43,10 @@ class RequestTest extends PHPUNIT_Framework_TestCase
     {
         $consumer = new JoakimKejser\OAuth\Consumer('key', 'secret');
 
-        $request = Request::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php');
+        $request = OauthRequest::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php');
 
         $this->assertEquals('key', $request->getParameter('oauth_consumer_key'));
-        $this->assertEquals(Request::$version, $request->getParameter('oauth_version'));
+        $this->assertEquals(OauthRequest::$version, $request->getParameter('oauth_version'));
         $this->assertTrue($request->getParameter('oauth_nonce') != null);
         $this->assertTrue(is_int($request->getParameter('oauth_timestamp')));
         $this->assertTrue($request->getParameter('oauth_timestamp') != null);
@@ -59,18 +59,18 @@ class RequestTest extends PHPUNIT_Framework_TestCase
 
         $consumer = new JoakimKejser\OAuth\Consumer('key', 'secret');
 
-        $request = Request::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php', null, array('foo' => 'bar'));
+        $request = OauthRequest::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php', null, array('foo' => 'bar'));
 
         $request->sign(new JoakimKejser\OAuth\SignatureMethod\HmacSha1, $consumer, null);
 
-        // Strip the Authorization part as we will be providing the header directly to the Request as HTTP_AUTHORIZATION
+        // Strip the Authorization part as we will be providing the header directly to the OauthRequest as HTTP_AUTHORIZATION
         $authHeader = str_replace('Authorization: ', '', $request->toHeader());
 
         $server = array('HTTP_AUTHORIZATION' => $authHeader);
 
         $sRequest = SymfonyRequest::create('/index.php', 'POST', array(), array(), array(), $server);
 
-        $request2 = Request::createFromRequest($sRequest);
+        $request2 = OauthRequest::createFromRequest($sRequest);
 
         $this->assertNotNull($request2->getParameter('oauth_signature'));
         $this->assertNotNull($request2->getParameter('oauth_version'));
@@ -85,7 +85,7 @@ class RequestTest extends PHPUNIT_Framework_TestCase
     /**
      * @depends testCreateFromConsumerAndToken
      **/
-    public function testToHeaderWithRealm(Request $request)
+    public function testToHeaderWithRealm(OauthRequest $request)
     {
         $this->assertEquals('realm="testRealm"', substr($request->toHeader('testRealm'), 21, 17));
     }
@@ -93,7 +93,7 @@ class RequestTest extends PHPUNIT_Framework_TestCase
     /**
      * @depends testCreateFromConsumerAndToken
      **/
-    public function testSigningRequest(Request $request)
+    public function testSigningRequest(OauthRequest $request)
     {
         $signatureMethod = new JoakimKejser\OAuth\SignatureMethod\HmacSha1;
 
@@ -118,7 +118,7 @@ class RequestTest extends PHPUNIT_Framework_TestCase
     /**
      * @depends testCreateFromConsumerAndToken
      **/
-    public function testArraysInParameters(Request $request)
+    public function testArraysInParameters(OauthRequest $request)
     {
         $request->setParameter('oauth_signature', array($request->getParameter('oauth_signature')));
 
@@ -133,7 +133,7 @@ class RequestTest extends PHPUNIT_Framework_TestCase
     {
         $token = new JoakimKejser\OAuth\Token('tokenkey', 'tokensecret');
         $consumer = new JoakimKejser\OAuth\Consumer('key', 'secret');
-        $request = Request::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php', $token, array('foo' => 'bar'));
+        $request = OauthRequest::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php', $token, array('foo' => 'bar'));
 
         $this->assertEquals('tokenkey', $request->getParameter('oauth_token'));
     }
@@ -147,22 +147,22 @@ class RequestTest extends PHPUNIT_Framework_TestCase
             'REQUEST_URI' => '/index.php'
         );
 
-        $request = Request::createFromGlobals();
+        $request = OauthRequest::createFromGlobals();
 
-        $this->assertEquals(new Request('GET', 'http://localhost/index.php'), $request);
+        $this->assertEquals(new OauthRequest('GET', 'http://localhost/index.php'), $request);
     }
 
     public function testGetNormalizedUri()
     {   
         $symfonyRequest = SymfonyRequest::create('http://localhost:80/index.php', 'GET');
-        $request = Request::createFromRequest($symfonyRequest);
+        $request = OauthRequest::createFromRequest($symfonyRequest);
 
         $url = $request->getNormalizedHttpUrl();
 
         $this->assertEquals('http://localhost/index.php', $url);
 
         $symfonyRequest = SymfonyRequest::create('http://localhost:8080/index.php', 'GET');
-        $request = Request::createFromRequest($symfonyRequest);
+        $request = OauthRequest::createFromRequest($symfonyRequest);
 
         $url = $request->getNormalizedHttpUrl();
 
@@ -199,7 +199,7 @@ class RequestTest extends PHPUNIT_Framework_TestCase
     {
         $consumer = new JoakimKejser\OAuth\Consumer('key', 'secret');
 
-        $request = Request::createFromConsumerAndToken($consumer, 'POST', 'http://localhost/index.php', null, array('foo' => 'bar'));
+        $request = OauthRequest::createFromConsumerAndToken($consumer, 'POST', 'http://localhost/index.php', null, array('foo' => 'bar'));
 
         $request->sign(new JoakimKejser\OAuth\SignatureMethod\HmacSha1, $consumer, null);
 
@@ -212,6 +212,6 @@ class RequestTest extends PHPUNIT_Framework_TestCase
 
     protected function getRequest($httpMethod = null, $httpUrl = null, $parameters = null)
     {
-        return Request::createFromRequest(SymfonyRequest::create('/index.php', 'GET'));
+        return OauthRequest::createFromRequest(SymfonyRequest::create('/index.php', 'GET'));
     }
 }

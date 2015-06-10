@@ -3,7 +3,11 @@ namespace JoakimKejser\OAuth;
 
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
-class Request
+/**
+ * Class OauthRequest
+ * @package JoakimKejser\OAuth
+ */
+class OauthRequest
 {
     protected $parameters;
     protected $httpMethod;
@@ -25,15 +29,19 @@ class Request
 
 
     /**
-     * Attempt to buid a Request from a Symfony Request object
-     * @param  Symfony\Component\HttpFoundation\Request $symfonyRequest
+     * Attempt to buid a OauthRequest from a Symfony OauthRequest object
+     * @param  \Symfony\Component\HttpFoundation\Request $symfonyRequest
      * @param  String $httpMethod Override of the HTTP Method
      * @param  String $httpUrl Override of the HTTP URL
-     * @param  Array  $parameters An array of parameters
-     * @return JoakimKejser\OAuth\Request
+     * @param  Array $parameters An array of parameters
+     * @return OauthRequest
      */
-    public static function createFromRequest(SymfonyRequest $symfonyRequest, $httpMethod = null, $httpUrl = null, $parameters = null)
-    {
+    public static function createFromRequest(
+        SymfonyRequest $symfonyRequest,
+        $httpMethod = null,
+        $httpUrl = null,
+        $parameters = null
+    ) {
         $httpUrl = ($httpUrl) ? $httpUrl : $symfonyRequest->getSchemeAndHttpHost() . $symfonyRequest->getRequestUri();
         $httpMethod = ($httpMethod) ? $httpMethod : $symfonyRequest->getMethod();
 
@@ -41,7 +49,7 @@ class Request
         // this request.
         // If you run XML-RPC or similar you should use this to provide your own
         // parsed parameter-list
-        if ( ! $parameters) {
+        if (!$parameters) {
             // Find request headers
             $requestHeaders = Util::getHeaders($symfonyRequest);
 
@@ -50,7 +58,7 @@ class Request
 
             // It's a POST request of the proper content-type, so parse POST
             // parameters and add those overriding any duplicates from GET
-            if ($httpMethod == "POST" AND isset($requestHeaders['Content-Type']) AND strstr($requestHeaders['Content-Type'], 'application/x-www-form-urlencoded')) {
+            if ($httpMethod == "POST") {
                 $postData = Util::parseParameters(
                     $symfonyRequest->getContent()
                 );
@@ -59,44 +67,50 @@ class Request
 
             // We have a Authorization-header with OAuth data. Parse the header
             // and add those overriding any duplicates from GET or POST
-            if (isset($requestHeaders['Authorization']) AND substr($requestHeaders['Authorization'], 0, 6) == 'OAuth ') {
+            if (isset($requestHeaders['Authorization']) AND substr($requestHeaders['Authorization'], 0, 6) == 'OAuth '
+            ) {
                 $headerParameters = Util::splitHeader($requestHeaders['Authorization']);
                 $parameters = array_merge($parameters, $headerParameters);
             }
 
         }
 
-        return new Request($httpMethod, $httpUrl, $parameters);
+        return new OauthRequest($httpMethod, $httpUrl, $parameters);
     }
 
     /**
-     * Create the Request object from globals
+     * Create the OauthRequest object from globals
      * @param  String $httpMethod Override of the HTTP Method
-     * @param  String $httpUrl    Override of the HTTP Url
-     * @param  Array  $parameters Array of parameters
-     * @return JoakimKejser\OAuth\Request
+     * @param  String $httpUrl Override of the HTTP Url
+     * @param  Array $parameters Array of parameters
+     * @return OauthRequest
      */
     public static function createFromGlobals($httpMethod = null, $httpUrl = null, $parameters = null)
     {
-        return Request::createFromRequest(SymfonyRequest::createFromGlobals(), $httpMethod, $httpUrl, $parameters);
+        return OauthRequest::createFromRequest(SymfonyRequest::createFromGlobals(), $httpMethod, $httpUrl, $parameters);
     }
 
     /**
-     * Creates a Request form consumer and token
-     * @param  JoakimKejser\OAuth\Consumer $consumer
-     * @param  String                      $httpMethod
-     * @param  String                      $httpUrl
-     * @param  JoakimKejser\OAuth\Token    $token
-     * @param  Array                       $parameters
-     * @return JoakimKejser\OAuth\Request
+     * Creates a OauthRequest form consumer and token
+     * @param ConsumerInterface $consumer
+     * @param  String $httpMethod
+     * @param  String $httpUrl
+     * @param TokenInterface $token
+     * @param  array $parameters
+     * @return OauthRequest
      */
-    public static function createFromConsumerAndToken(Consumer $consumer, $httpMethod, $httpUrl, Token $token = null, $parameters = null)
-    {
-        $parameters = ($parameters) ?  $parameters : array();
+    public static function createFromConsumerAndToken(
+        ConsumerInterface $consumer,
+        $httpMethod,
+        $httpUrl,
+        TokenInterface $token = null,
+        $parameters = null
+    ) {
+        $parameters = ($parameters) ? $parameters : array();
         $defaults = array(
-            "oauth_version" => Request::$version,
-            "oauth_nonce" => Request::generateNonce(),
-            "oauth_timestamp" => Request::generateTimestamp(),
+            "oauth_version" => OauthRequest::$version,
+            "oauth_nonce" => OauthRequest::generateNonce(),
+            "oauth_timestamp" => OauthRequest::generateTimestamp(),
             "oauth_consumer_key" => $consumer->key
         );
 
@@ -106,13 +120,13 @@ class Request
 
         $parameters = array_merge($defaults, $parameters);
 
-        return new Request($httpMethod, $httpUrl, $parameters);
+        return new OauthRequest($httpMethod, $httpUrl, $parameters);
     }
 
     /**
-     * Sets a parameter on the Request object
-     * @param String  $name
-     * @param mixed   $value
+     * Sets a parameter on the OauthRequest object
+     * @param String $name
+     * @param mixed $value
      * @param boolean $allowDuplicates
      */
     public function setParameter($name, $value, $allowDuplicates = true)
@@ -132,9 +146,9 @@ class Request
     }
 
     /**
-     * Gets a parameters from the Request object
+     * Gets a parameters from the OauthRequest object
      * @param  String $name
-     * @return miced
+     * @return mixed
      */
     public function getParameter($name)
     {
@@ -160,9 +174,9 @@ class Request
     }
 
     /**
-    * The request parameters, sorted and concatenated into a normalized string.
-    * @return String
-    */
+     * The request parameters, sorted and concatenated into a normalized string.
+     * @return String
+     */
     public function getSignableParameters()
     {
         // Grab all parameters
@@ -183,7 +197,7 @@ class Request
      * The base string defined as the method, the url
      * and the parameters (normalized), each urlencoded
      * and the concated with &.
-     * 
+     *
      * @return String
      */
     public function getSignatureBaseString()
@@ -239,16 +253,17 @@ class Request
         $postData = $this->toPostdata($noOAuthParameters);
         $out = $this->getNormalizedHttpUrl();
         if ($postData) {
-            $out .= '?'.$postData;
+            $out .= '?' . $postData;
         }
+
         return $out;
     }
 
     /**
-    * Build the data for a POST request
-    * @param  boolean $noOAuthParameters Whether or not to include OAuth parameters. To use when parameters are passed in the Authorization header.
-    * @return String
-    */
+     * Build the data for a POST request
+     * @param  boolean $noOAuthParameters Whether or not to include OAuth parameters. To use when parameters are passed in the Authorization header.
+     * @return String
+     */
     public function toPostData($noOAuthParameters = false)
     {
         $parameters = $this->getParameters();
@@ -267,6 +282,7 @@ class Request
      * Build the Authorization header
      * @param  String $realm
      * @return String
+     * @throws Exception\ArrayNotSupportedInHeaders
      */
     public function toHeader($realm = null)
     {
@@ -290,6 +306,7 @@ class Request
             $out .= Util::urlencodeRfc3986($k) . '="' . Util::urlencodeRfc3986($v) . '"';
             $first = false;
         }
+
         return $out;
     }
 
@@ -303,12 +320,12 @@ class Request
     }
 
     /**
-     * Function for signing the Request object
-     * @param  JoakimKejser\OAuth\SignatureMethod  $signatureMethod
-     * @param  JoakimKejser\OAuth\Consumer         $consumer
-     * @param  JoakimKejser\OAuth\Token            $token
+     * Function for signing the OauthRequest object
+     * @param  SignatureMethod $signatureMethod
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
      */
-    public function sign(SignatureMethod $signatureMethod, Consumer $consumer, Token $token = null)
+    public function sign(SignatureMethod $signatureMethod, ConsumerInterface $consumer, TokenInterface $token = null)
     {
         $this->setParameter(
             "oauth_signature_method",
@@ -321,14 +338,18 @@ class Request
 
     /**
      * Builds the actual signature
-     * @param  JoakimKejser\OAuth\SignatureMethod  $signatureMethod
-     * @param  JoakimKejser\OAuth\Consumer         $consumer
-     * @param  JoakimKejser\OAuth\Token            $token
+     * @param  SignatureMethod $signatureMethod
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
      * @return String
      */
-    public function buildSignature(SignatureMethod $signatureMethod, Consumer $consumer, Token $token = null)
-    {
+    public function buildSignature(
+        SignatureMethod $signatureMethod,
+        ConsumerInterface $consumer,
+        TokenInterface $token = null
+    ) {
         $signature = $signatureMethod->buildSignature($this, $consumer, $token);
+
         return $signature;
     }
 

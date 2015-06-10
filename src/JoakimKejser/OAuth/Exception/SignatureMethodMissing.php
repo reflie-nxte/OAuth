@@ -1,6 +1,8 @@
 <?php
 namespace JoakimKejser\OAuth\Exeption;
 
-class SignatureMethodMissing extends \JoakimKejser\OAuth\Exception
+use JoakimKejser\OAuth\Exception;
+
+class SignatureMethodMissing extends Exception
 {
 }

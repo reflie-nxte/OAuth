@@ -1,11 +1,13 @@
 <?php
 namespace JoakimKejser\OAuth\SignatureMethod;
 
+use JoakimKejser\OAuth\ConsumerInterface;
 use JoakimKejser\OAuth\OAuthUtil;
 use JoakimKejser\OAuth\SignatureMethod;
-use JoakimKejser\OAuth\Request;
+use JoakimKejser\OAuth\OauthRequest;
 use JoakimKejser\OAuth\Consumer;
 use JoakimKejser\OAuth\Token;
+use JoakimKejser\OAuth\TokenInterface;
 use Joakimkejser\OAuth\Util;
 
 /**
@@ -18,12 +20,21 @@ use Joakimkejser\OAuth\Util;
 
 class HmacSha1 extends SignatureMethod
 {
+    /**
+     * @return string
+     */
     public function getName()
     {
         return "HMAC-SHA1";
     }
 
-    public function buildSignature(Request $request, Consumer $consumer, Token $token = null)
+    /**
+     * @param OauthRequest $request
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
+     * @return string
+     */
+    public function buildSignature(OauthRequest $request, ConsumerInterface $consumer, TokenInterface $token = null)
     {
         $baseString = $request->getSignatureBaseString();
         $request->setBaseString($baseString);

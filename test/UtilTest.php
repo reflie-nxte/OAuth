@@ -1,7 +1,7 @@
 <?php
 
 use JoakimKejser\OAuth\Util;
-use JoakimKejser\OAuth\Request;
+use JoakimKejser\OAuth\OauthRequest;
 
 class UtilTest extends PHPUNIT_Framework_Testcase
 {
@@ -18,7 +18,7 @@ class UtilTest extends PHPUNIT_Framework_Testcase
     public function testSplitHeader()
     {
         $consumer = new JoakimKejser\OAuth\Consumer('key', 'secret');
-        $request = Request::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php');
+        $request = OauthRequest::createFromConsumerAndToken($consumer, 'GET', 'http://localhost/index.php');
         $request->sign(new JoakimKejser\OAuth\SignatureMethod\HmacSha1, $consumer);
 
         $headers = Util::splitHeader($request->toHeader());

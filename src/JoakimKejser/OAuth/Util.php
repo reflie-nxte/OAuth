@@ -3,36 +3,42 @@ namespace JoakimKejser\OAuth;
 
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
+/**
+ * Class Util
+ * @package JoakimKejser\OAuth
+ */
 class Util
 {
     /**
      * URL Encodes according to RFC3986
-     * @param String $input 
+     * @param String $input
      * @return String
      */
     public static function urlencodeRfc3986($input)
     {
         if (is_array($input)) {
             return array_map(array('JoakimKejser\OAuth\Util', 'urlencodeRfc3986'), $input);
-        } else if (is_scalar($input)) {
-            return str_replace(
-                '+',
-                ' ',
-                str_replace('%7E', '~', rawurlencode($input))
-            );
         } else {
-            return '';
+            if (is_scalar($input)) {
+                return str_replace(
+                    '+',
+                    ' ',
+                    str_replace('%7E', '~', rawurlencode($input))
+                );
+            } else {
+                return '';
+            }
         }
     }
 
     /**
      * Description
-     * 
+     *
      * This decode function isn't taking into consideration the above
      * modifications to the encoding process. However, this method doesn't
      * seem to be used anywhere so leaving it as is.
-     * 
-     * @param String $string 
+     *
+     * @param String $string
      * @return String
      */
     public static function urldecodeRfc3986($string)
@@ -48,19 +54,20 @@ class Util
 
     /**
      * Utility function for turning the Authorization: header into parameters
-     * 
+     *
      * Has to do some unescaping too. Can filter out any non-oauth parameters if needed (default behaviour)
      * May 28th, 2010 - method updated to tjerk.meesters for a speed improvement.
      * see http://code.google.com/p/oauth/issues/detail?id=163
-     * 
+     *
      * @param String $header Authorization Header
-     * @param boolean $onlyAllowOAuthParameters 
+     * @param boolean $onlyAllowOAuthParameters
      * @return array
      */
     public static function splitHeader($header, $onlyAllowOAuthParameters = true)
     {
         $params = array();
-        if (preg_match_all('/('.($onlyAllowOAuthParameters ? 'oauth_' : '').'[a-z_-]*)=(:?"([^"]*)"|([^,]*))/', $header, $matches)) {
+        if (preg_match_all('/(' . ($onlyAllowOAuthParameters ? 'oauth_' : '') . '[a-z_-]*)=(:?"([^"]*)"|([^,]*))/',
+            $header, $matches)) {
             foreach ($matches[1] as $i => $h) {
                 $params[$h] = Util::urldecodeRfc3986(empty($matches[3][$i]) ? $matches[4][$i] : $matches[3][$i]);
             }
@@ -69,12 +76,13 @@ class Util
                 unset($params['realm']);
             }
         }
+
         return $params;
     }
 
     /**
      * Helper to try to sort out headers for people who aren't running apache
-     * @param Symfony\Component\HttpFoundation\Request $request 
+     * @param \Symfony\Component\HttpFoundation\Request $request
      * @return Array array of headers
      */
     public static function getHeaders(SymfonyRequest $request)
@@ -102,11 +110,11 @@ class Util
             // that $_SERVER actually contains what we need
             $out = array();
 
-            if ( $request->server->get('CONTENT_TYPE') ) {
+            if ($request->server->get('CONTENT_TYPE')) {
                 $out['Content-Type'] = $request->server->get('CONTENT_TYPE');
             }
 
-            if ( isset($_ENV['CONTENT_TYPE']) ) {
+            if (isset($_ENV['CONTENT_TYPE'])) {
                 $out['Content-Type'] = $_ENV['CONTENT_TYPE'];
             }
 
@@ -116,26 +124,27 @@ class Util
                     // this is chaos, basically it is just there to capitalize the first
                     // letter of every word that is not an initial HTTP and strip HTTP
                     // code from przemek
-                        $key = str_replace(
-                            " ",
-                            "-",
-                            ucwords(strtolower(str_replace("_", " ", substr($key, 5))))
-                        );
+                    $key = str_replace(
+                        " ",
+                        "-",
+                        ucwords(strtolower(str_replace("_", " ", substr($key, 5))))
+                    );
                     $out[$key] = $value;
                 }
             }
         }
+
         return $out;
     }
 
     /**
      * Parses a parameter string into an array
-     * 
+     *
      * Takes a input like a=b&a=c&d=e and returns the parsed
      * parameters like this
      * array('a' => array('b','c'), 'd' => 'e')
-     * 
-     * @param String $input 
+     *
+     * @param String $input
      * @return Array
      */
     public static function parseParameters($input)
@@ -167,17 +176,18 @@ class Util
                 $parsedParameters[$parameter] = $value;
             }
         }
+
         return $parsedParameters;
     }
 
     /**
      * Takes an array of parameters and turn them into a sorted query string
-     * @param  Array  $params
+     * @param  Array $params
      * @return String
      */
     public static function buildHttpQuery(Array $params)
     {
-        if ( ! $params) {
+        if (!$params) {
             return '';
         }
 
