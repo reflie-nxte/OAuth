@@ -1,25 +1,54 @@
 <?php
 namespace JoakimKejser\OAuth;
 
+/**
+ * Class Server
+ * @package JoakimKejser\OAuth
+ */
 class Server
 {
-    protected $timestampThreshold = 300; // in seconds, five minutes
-    protected $version = '1.0';             // hi blaine
+    /**
+     * @var int seconds
+     */
+    protected $timestampThreshold = 300;
+
+    /**
+     * @var string
+     */
+    protected $version = '1.0';
+
+    /**
+     * @var array
+     */
     protected $signatureMethods = array();
 
+    /**
+     * @var ConsumerStoreInterace
+     */
     protected $consumerStore;
+    /**
+     * @var NonceStoreInterface
+     */
     protected $nonceStore;
+
+    /**
+     * @var TokenStoreInterface
+     */
     protected $tokenStore;
 
     /**
      * Constructor
-     * @param Request       $request
-     * @param ConsumerStore $consumerStore
-     * @param NonceStore    $nonceStore
-     * @param TokenStore    $tokenStore
+     * @param OauthRequest $request
+     * @param ConsumerStoreInterface $consumerStore
+     * @param NonceStoreInterface $nonceStore
+     * @param TokenStoreInterface $tokenStore
      */
-    public function __construct(Request $request, ConsumerStore $consumerStore, NonceStore $nonceStore, TokenStore $tokenStore = null)
-    {
+    public function __construct(
+        OauthRequest $request,
+        ConsumerStoreInterface $consumerStore,
+        NonceStoreInterface $nonceStore,
+        TokenStoreInterface $tokenStore = null
+    ) {
         $this->request = $request;
         $this->consumerStore = $consumerStore;
         $this->nonceStore = $nonceStore;
@@ -30,7 +59,7 @@ class Server
      * Adds a signature method to the server object
      *
      * Adds the signature method to the supported signature methods
-     * 
+     *
      * @param SignatureMethod $signatureMethod
      */
     public function addSignatureMethod(SignatureMethod $signatureMethod)
@@ -38,12 +67,10 @@ class Server
         $this->signatureMethods[$signatureMethod->getName()] = $signatureMethod;
     }
 
-    // high level functions
-
     /**
-    * process a request_token request
-    * returns the request token on success
-    */
+     * process a request_token request
+     * returns the request token on success
+     */
     public function fetchRequestToken()
     {
         $this->getVersion();
@@ -63,9 +90,9 @@ class Server
     }
 
     /**
-    * process an access_token request
-    * returns the access token on success
-    */
+     * process an access_token request
+     * returns the access token on success
+     */
     public function fetchAccessToken()
     {
         $this->getVersion();
@@ -73,7 +100,7 @@ class Server
         $consumer = $this->getConsumer();
 
         // requires authorized request token
-        $token = $this->getToken($consumer, "request");
+        $token = $this->getToken($consumer, TokenType::REQUEST);
 
         $this->checkSignature($consumer, $token);
 
@@ -85,26 +112,25 @@ class Server
     }
 
     /**
-    * verify an api call, checks all the parameters
-    */
+     * verify an api call, checks all the parameters
+     */
     public function verifyRequest()
     {
         $this->getVersion();
         $consumer = $this->getConsumer();
-        $token = $this->getToken($consumer, "access");
+        $token = $this->getToken($consumer, TokenType::ACCESS);
         $this->checkSignature($consumer, $token);
 
         return array($consumer, $token);
     }
 
-    // Internals from here
     /**
-    * version 1
-    */
+     * version 1
+     */
     private function getVersion()
     {
         $version = $this->request->getParameter("oauth_version");
-        if ( ! $version) {
+        if (!$version) {
             // Service Providers MUST assume the protocol version to be 1.0 if this parameter is not present.
             // Chapter 7.0 ("Accessing Protected Ressources")
             $version = '1.0';
@@ -117,40 +143,47 @@ class Server
     }
 
     /**
-    * figure out the signature with some defaults
-    */
+     * figure out the signature with some defaults
+     * @throws Exception\SignatureMethodMissing
+     * @throws Exception\SignatureMethodNotSupported
+     * @return SignatureMethod
+     */
     private function getSignatureMethod()
     {
         $signatureMethod = $this->request->getParameter("oauth_signature_method");
 
-        if ( ! $signatureMethod) {
+        if (!$signatureMethod) {
             // According to chapter 7 ("Accessing Protected Ressources") the signature-method
             // parameter is required, and we can't just fallback to PLAINTEXT
             throw new Exception\SignatureMethodMissing();
         }
 
-        if ( ! in_array($signatureMethod, array_keys($this->signatureMethods))) {
+        if (!in_array($signatureMethod, array_keys($this->signatureMethods))) {
             throw new Exception\SignatureMethodNotSupported(
                 "Signature method '$signatureMethod' not supported, try one of the following: " .
                 implode(", ", array_keys($this->signatureMethods))
             );
         }
+
         return $this->signatureMethods[$signatureMethod];
     }
 
     /**
-    * try to find the consumer for the provided request's consumer key
-    */
+     * try to find the consumer for the provided request's consumer key
+     * @throws Exception\ConsumerKeyMissing
+     * @throws Exception\InvalidConsumer
+     * @return ConsumerInterface
+     */
     private function getConsumer()
     {
         $consumerKey = $this->request->getParameter("oauth_consumer_key");
 
-        if ( ! $consumerKey) {
+        if (!$consumerKey) {
             throw new Exception\ConsumerKeyMissing();
         }
 
         $consumer = $this->consumerStore->getConsumer($consumerKey);
-        if ( ! $consumer) {
+        if (!$consumer) {
             throw new Exception\InvalidConsumer();
         }
 
@@ -158,9 +191,13 @@ class Server
     }
 
     /**
-    * try to find the token for the provided request's token key
-    */
-    private function getToken(Consumer $consumer, $tokenType = "access")
+     * try to find the token for the provided request's token key
+     * @param ConsumerInterface $consumer
+     * @param string $tokenType
+     * @return mixed|null
+     * @throws Exception\InvalidToken
+     */
+    private function getToken(ConsumerInterface $consumer, $tokenType = TokenType::ACCESS)
     {
         if ($this->tokenStore === null) {
             return null;
@@ -174,7 +211,7 @@ class Server
             $tokenField
         );
 
-        if ( ! $token) {
+        if (!$token) {
             throw new Exception\InvalidToken("Invalid $tokenType token: $tokenField");
         }
 
@@ -182,10 +219,19 @@ class Server
     }
 
     /**
-    * all-in-one function to check the signature on a request
-    * should guess the signature method appropriately
-    */
-    private function checkSignature(Consumer $consumer, Token $token = null)
+     * all-in-one function to check the signature on a request
+     * should guess the signature method appropriately
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
+     * @throws Exception\InvalidSignature
+     * @throws Exception\NonceAlreadyUsed
+     * @throws Exception\NonceMissing
+     * @throws Exception\SignatureMethodMissing
+     * @throws Exception\SignatureMethodNotSupported
+     * @throws Exception\TimestampExpired
+     * @throws Exception\TimestampMissing
+     */
+    private function checkSignature(ConsumerInterface $consumer, TokenInterface $token = null)
     {
         // this should probably be in a different method
         $timestamp = $this->request->getParameter('oauth_timestamp');
@@ -204,17 +250,20 @@ class Server
             $token
         );
 
-        if ( ! $validSig) {
+        if (!$validSig) {
             throw new Exception\InvalidSignature();
         }
     }
 
     /**
-    * check that the timestamp is new enough
-    */
+     * check that the timestamp is new enough
+     * @param int $timestamp
+     * @throws Exception\TimestampExpired
+     * @throws Exception\TimestampMissing
+     */
     private function checkTimestamp($timestamp)
     {
-        if ( ! $timestamp ) {
+        if (!$timestamp) {
             throw new Exception\TimestampMissing();
         }
 
@@ -226,11 +275,17 @@ class Server
     }
 
     /**
-    * check that the nonce is not repeated
-    */
-    private function checkNonce(Consumer $consumer, $nonce, $timestamp, Token $token = null)
+     * check that the nonce is not repeated
+     * @param ConsumerInterface $consumer
+     * @param string $nonce
+     * @param int $timestamp
+     * @param TokenInterface $token
+     * @throws Exception\NonceAlreadyUsed
+     * @throws Exception\NonceMissing
+     */
+    private function checkNonce(ConsumerInterface $consumer, $nonce, $timestamp, TokenInterface $token = null)
     {
-        if ( ! $nonce ) {
+        if (!$nonce) {
             throw new Exception\NonceMissing();
         }
 

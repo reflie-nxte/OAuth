@@ -1,11 +1,13 @@
 <?php
 namespace JoakimKejser\OAuth\SignatureMethod;
 
+use JoakimKejser\OAuth\ConsumerInterface;
 use JoakimKejser\OAuth\OAuthUtil;
 use JoakimKejser\OAuth\SignatureMethod;
-use JoakimKejser\OAuth\Request;
+use JoakimKejser\OAuth\OauthRequest;
 use JoakimKejser\OAuth\Consumer;
 use JoakimKejser\OAuth\Token;
+use JoakimKejser\OAuth\TokenInterface;
 use Joakimkejser\OAuth\Util;
 
 /**
@@ -18,6 +20,9 @@ use Joakimkejser\OAuth\Util;
  */
 abstract class RsaSha1 extends SignatureMethod
 {
+    /**
+     * @return string
+     */
     public function getName()
     {
         return "RSA-SHA1";
@@ -29,15 +34,22 @@ abstract class RsaSha1 extends SignatureMethod
     // (3) some sort of specific discovery code based on request
     //
     // Either way should return a string representation of the certificate
-    abstract protected function fetchPublicCert(Request &$request);
+    abstract protected function fetchPublicCert(OauthRequest &$request);
 
     // Up to the SP to implement this lookup of keys. Possible ideas are:
     // (1) do a lookup in a table of trusted certs keyed off of consumer
     //
     // Either way should return a string representation of the certificate
-    abstract protected function fetchPrivateCert(Request &$request);
+    abstract protected function fetchPrivateCert(OauthRequest &$request);
 
-    public function buildSignature(Request $request, Consumer $consumer, Token $token = null)
+
+    /**
+     * @param OauthRequest $request
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
+     * @return string
+     */
+    public function buildSignature(OauthRequest $request, ConsumerInterface $consumer, TokenInterface $token = null)
     {
         $baseString = $request->getSignatureBaseString();
         $request->setBaseString($baseString);
@@ -57,7 +69,14 @@ abstract class RsaSha1 extends SignatureMethod
         return base64_encode($signature);
     }
 
-    public function checkSignature($signature, Request $request, Consumer $consumer, Token $token = null)
+    /**
+     * @param String $signature
+     * @param OauthRequest $request
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
+     * @return bool
+     */
+    public function checkSignature($signature, OauthRequest $request, ConsumerInterface $consumer, TokenInterface $token = null)
     {
         $decodedSig = base64_decode($signature);
 

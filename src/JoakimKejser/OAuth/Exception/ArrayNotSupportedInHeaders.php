@@ -1,6 +1,8 @@
 <?php
 namespace JoakimKejser\OAuth\Exception;
 
-class ArrayNotSupportedInHeaders extends \JoakimKejser\OAuth\Exception
+use JoakimKejser\OAuth\Exception;
+
+class ArrayNotSupportedInHeaders extends Exception
 {
 }

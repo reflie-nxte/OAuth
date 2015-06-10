@@ -9,33 +9,37 @@ namespace JoakimKejser\OAuth;
 abstract class SignatureMethod
 {
     /**
-    * Needs to return the name of the Signature Method (ie HMAC-SHA1)
-    * @return String
-    */
-    abstract public function getName();
+     * Needs to return the name of the Signature Method (ie HMAC-SHA1)
+     * @return String
+     */
+    public abstract function getName();
 
     /**
-    * Build up the signature
-    * NOTE: The output of this function MUST NOT be urlencoded.
-    * the encoding is handled in OAuthRequest when the final
-    * request is serialized
-    * @param Request    $request
-    * @param Consumer   $consumer
-    * @param Token      $token
-    * @return String
-    */
-    abstract public function buildSignature(Request $request, Consumer $consumer, Token $token);
+     * Build up the signature
+     * NOTE: The output of this function MUST NOT be urlencoded.
+     * the encoding is handled in OAuthRequest when the final
+     * request is serialized
+     * @param OauthRequest $request
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
+     * @return String
+     */
+    public abstract function buildSignature(OauthRequest $request, ConsumerInterface $consumer, TokenInterface $token);
 
     /**
-    * Verifies that a given signature is correct
-    * @param Request    $request
-    * @param Consumer   $consumer
-    * @param Token      $token
-    * @param String $signature
-    * @return boolean
-    */
-    public function checkSignature($signature, Request $request, Consumer $consumer, Token $token = null)
-    {
+     * Verifies that a given signature is correct
+     * @param OauthRequest $request
+     * @param ConsumerInterface $consumer
+     * @param TokenInterface $token
+     * @param String $signature
+     * @return boolean
+     */
+    public function checkSignature(
+        $signature,
+        OauthRequest $request,
+        ConsumerInterface $consumer,
+        TokenInterface $token = null
+    ) {
         $built = $this->buildSignature($request, $consumer, $token);
 
         // Check for zero length, although unlikely here

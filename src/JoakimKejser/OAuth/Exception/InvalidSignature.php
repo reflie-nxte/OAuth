@@ -1,6 +1,8 @@
 <?php
 namespace JoakimKejser\OAuth\Exception;
 
-class InvalidSignature extends \JoakimKejser\OAuth\Exception
+use JoakimKejser\OAuth\Exception;
+
+class InvalidSignature extends Exception
 {
 }
