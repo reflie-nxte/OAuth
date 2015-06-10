@@ -17,6 +17,12 @@ class AccessToken implements TokenInterface
      */
     protected $secret;
 
+    function __construct($key, $secret)
+    {
+        $this->key = $key;
+        $this->secret = $secret;
+    }
+
     /**
      * @return string
      */

@@ -3,6 +3,6 @@ namespace JoakimKejser\OAuth\Exception;
 
 use JoakimKejser\OAuth\Exception;
 
-class ConsumerKeyMissing extends Exception
+class ArrayNotSupportedInHeadersException extends Exception
 {
 }

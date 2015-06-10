@@ -11,10 +11,10 @@ use JoakimKejser\OAuth\TokenInterface;
 use Joakimkejser\OAuth\Util;
 
 /**
- * The RSA-SHA1 signature method uses the RSASSA-PKCS1-v1_5 signature algorithm as defined in 
- * [RFC3447] section 8.2 (more simply known as PKCS#1), using SHA-1 as the hash function for 
- * EMSA-PKCS1-v1_5. It is assumed that the Consumer has provided its RSA public key in a 
- * verified way to the Service Provider, in a manner which is beyond the scope of this 
+ * The RSA-SHA1 signature method uses the RSASSA-PKCS1-v1_5 signature algorithm as defined in
+ * [RFC3447] section 8.2 (more simply known as PKCS#1), using SHA-1 as the hash function for
+ * EMSA-PKCS1-v1_5. It is assumed that the Consumer has provided its RSA public key in a
+ * verified way to the Service Provider, in a manner which is beyond the scope of this
  * specification.
  *   - Chapter 9.3 ("RSA-SHA1")
  */
@@ -76,8 +76,12 @@ abstract class RsaSha1 extends SignatureMethod
      * @param TokenInterface $token
      * @return bool
      */
-    public function checkSignature($signature, OauthRequest $request, ConsumerInterface $consumer, TokenInterface $token = null)
-    {
+    public function checkSignature(
+        $signature,
+        OauthRequest $request,
+        ConsumerInterface $consumer,
+        TokenInterface $token = null
+    ) {
         $decodedSig = base64_decode($signature);
 
         $baseString = $request->getSignatureBaseString();
