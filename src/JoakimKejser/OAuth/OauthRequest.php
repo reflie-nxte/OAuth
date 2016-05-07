@@ -66,10 +66,7 @@ class OauthRequest
                         $symfonyRequest->getContent()
                     );
                     $parameters = array_merge($parameters, $postData);
-                } else {
-                    $postData = $symfonyRequest->request->all();
-                    $parameters = array_merge($parameters, $postData);
-                }
+                } 
 
             }
 
