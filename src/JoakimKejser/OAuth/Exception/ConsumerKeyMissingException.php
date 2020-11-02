@@ -3,6 +3,6 @@ namespace JoakimKejser\OAuth\Exception;
 
 use JoakimKejser\OAuth\Exception;
 
-class VersionNotSupported extends Exception
+class ConsumerKeyMissingException extends Exception
 {
 }

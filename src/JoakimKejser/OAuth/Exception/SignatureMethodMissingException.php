@@ -3,6 +3,6 @@ namespace JoakimKejser\OAuth\Exeption;
 
 use JoakimKejser\OAuth\Exception;
 
-class SignatureMethodMissing extends Exception
+class SignatureMethodMissingException extends Exception
 {
 }

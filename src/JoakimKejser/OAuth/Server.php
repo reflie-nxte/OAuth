@@ -69,7 +69,7 @@ class Server
 
     /**
      * process a request_token request
-     * returns the request token on success
+     * @return array consumer, request token, and oauth callback on success
      */
     public function fetchRequestToken()
     {
@@ -86,12 +86,12 @@ class Server
         $callback = $this->request->getParameter('oauth_callback');
         $newToken = $this->tokenStore->newRequestToken($consumer, $callback);
 
-        return $newToken . "&oauth_callback_confirmed=true";
+        return array($consumer, $newToken, $callback);
     }
 
     /**
      * process an access_token request
-     * returns the access token on success
+     * @return array consumer, token, and verifier on success
      */
     public function fetchAccessToken()
     {
@@ -108,11 +108,12 @@ class Server
         $verifier = $this->request->getParameter('oauth_verifier');
         $newToken = $this->tokenStore->newAccessToken($token, $consumer, $verifier);
 
-        return $newToken;
+        return array($consumer, $newToken, $verifier);
     }
 
     /**
      * verify an api call, checks all the parameters
+     * @return array consumer and token
      */
     public function verifyRequest()
     {
@@ -136,7 +137,7 @@ class Server
             $version = '1.0';
         }
         if ($version !== $this->version) {
-            throw new Exception\VersionNotSupported();
+            throw new Exception\VersionNotSupportedException();
         }
 
         return $version;
@@ -145,7 +146,7 @@ class Server
     /**
      * figure out the signature with some defaults
      * @throws Exception\SignatureMethodMissing
-     * @throws Exception\SignatureMethodNotSupported
+     * @throws Exception\SignatureMethodNotSupportedException
      * @return SignatureMethod
      */
     private function getSignatureMethod()
@@ -159,7 +160,7 @@ class Server
         }
 
         if (!in_array($signatureMethod, array_keys($this->signatureMethods))) {
-            throw new Exception\SignatureMethodNotSupported(
+            throw new Exception\SignatureMethodNotSupportedException(
                 "Signature method '$signatureMethod' not supported, try one of the following: " .
                 implode(", ", array_keys($this->signatureMethods))
             );
@@ -170,8 +171,8 @@ class Server
 
     /**
      * try to find the consumer for the provided request's consumer key
-     * @throws Exception\ConsumerKeyMissing
-     * @throws Exception\InvalidConsumer
+     * @throws Exception\ConsumerKeyMissingException
+     * @throws Exception\InvalidConsumerException
      * @return ConsumerInterface
      */
     private function getConsumer()
@@ -179,12 +180,12 @@ class Server
         $consumerKey = $this->request->getParameter("oauth_consumer_key");
 
         if (!$consumerKey) {
-            throw new Exception\ConsumerKeyMissing();
+            throw new Exception\ConsumerKeyMissingException();
         }
 
         $consumer = $this->consumerStore->getConsumer($consumerKey);
         if (!$consumer) {
-            throw new Exception\InvalidConsumer();
+            throw new Exception\InvalidConsumerException();
         }
 
         return $consumer;
@@ -195,7 +196,7 @@ class Server
      * @param ConsumerInterface $consumer
      * @param string $tokenType
      * @return mixed|null
-     * @throws Exception\InvalidToken
+     * @throws Exception\InvalidTokenException
      */
     private function getToken(ConsumerInterface $consumer, $tokenType = TokenType::ACCESS)
     {
@@ -204,6 +205,9 @@ class Server
         }
 
         $tokenField = $this->request->getParameter('oauth_token');
+        if (is_null($tokenField)) {
+            return null;
+        }
 
         $token = $this->tokenStore->getToken(
             $consumer,
@@ -212,7 +216,7 @@ class Server
         );
 
         if (!$token) {
-            throw new Exception\InvalidToken("Invalid $tokenType token: $tokenField");
+            throw new Exception\InvalidTokenException("Invalid $tokenType token: $tokenField");
         }
 
         return $token;
@@ -223,13 +227,13 @@ class Server
      * should guess the signature method appropriately
      * @param ConsumerInterface $consumer
      * @param TokenInterface $token
-     * @throws Exception\InvalidSignature
-     * @throws Exception\NonceAlreadyUsed
-     * @throws Exception\NonceMissing
+     * @throws Exception\InvalidSignatureException
+     * @throws Exception\NonceAlreadyUsedException
+     * @throws Exception\NonceMissingException
      * @throws Exception\SignatureMethodMissing
-     * @throws Exception\SignatureMethodNotSupported
-     * @throws Exception\TimestampExpired
-     * @throws Exception\TimestampMissing
+     * @throws Exception\SignatureMethodNotSupportedException
+     * @throws Exception\TimestampExpiredException
+     * @throws Exception\TimestampMissingException
      */
     private function checkSignature(ConsumerInterface $consumer, TokenInterface $token = null)
     {
@@ -251,26 +255,28 @@ class Server
         );
 
         if (!$validSig) {
-            throw new Exception\InvalidSignature();
+            $exception = new Exception\InvalidSignatureException();
+            $exception->setDebugInfo($this->request->getSignatureBaseString());
+            throw $exception;
         }
     }
 
     /**
      * check that the timestamp is new enough
      * @param int $timestamp
-     * @throws Exception\TimestampExpired
-     * @throws Exception\TimestampMissing
+     * @throws Exception\TimestampExpiredException
+     * @throws Exception\TimestampMissingException
      */
     private function checkTimestamp($timestamp)
     {
         if (!$timestamp) {
-            throw new Exception\TimestampMissing();
+            throw new Exception\TimestampMissingException();
         }
 
         // verify that timestamp is recentish
         $now = time();
         if (abs($now - $timestamp) > $this->timestampThreshold) {
-            throw new Exception\TimestampExpired();
+            throw new Exception\TimestampExpiredException();
         }
     }
 
@@ -280,13 +286,13 @@ class Server
      * @param string $nonce
      * @param int $timestamp
      * @param TokenInterface $token
-     * @throws Exception\NonceAlreadyUsed
-     * @throws Exception\NonceMissing
+     * @throws Exception\NonceAlreadyUsedException
+     * @throws Exception\NonceMissingException
      */
     private function checkNonce(ConsumerInterface $consumer, $nonce, $timestamp, TokenInterface $token = null)
     {
         if (!$nonce) {
-            throw new Exception\NonceMissing();
+            throw new Exception\NonceMissingException();
         }
 
         // verify that the nonce is uniqueish
@@ -298,7 +304,7 @@ class Server
         );
 
         if ($found) {
-            throw new Exception\NonceAlreadyUsed();
+            throw new Exception\NonceAlreadyUsedException();
         }
     }
 }

@@ -3,6 +3,6 @@ namespace JoakimKejser\OAuth\Exception;
 
 use JoakimKejser\OAuth\Exception;
 
-class InvalidConsumer extends Exception
+class TimestampExpiredException extends Exception
 {
 }

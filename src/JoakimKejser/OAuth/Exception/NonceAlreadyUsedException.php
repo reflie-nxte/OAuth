@@ -3,6 +3,6 @@ namespace JoakimKejser\OAuth\Exception;
 
 use JoakimKejser\OAuth\Exception;
 
-class TimestampExpired extends Exception
+class NonceAlreadyUsedException extends Exception
 {
 }

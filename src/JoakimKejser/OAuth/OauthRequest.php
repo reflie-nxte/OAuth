@@ -59,10 +59,15 @@ class OauthRequest
             // It's a POST request of the proper content-type, so parse POST
             // parameters and add those overriding any duplicates from GET
             if ($httpMethod == "POST") {
-                $postData = Util::parseParameters(
-                    $symfonyRequest->getContent()
-                );
-                $parameters = array_merge($parameters, $postData);
+                if (isset($requestHeaders['Content-Type']) AND strstr($requestHeaders['Content-Type'],
+                        'application/x-www-form-urlencoded')
+                ) {
+                    $postData = Util::parseParameters(
+                        $symfonyRequest->getContent()
+                    );
+                    $parameters = array_merge($parameters, $postData);
+                } 
+
             }
 
             // We have a Authorization-header with OAuth data. Parse the header
@@ -111,11 +116,11 @@ class OauthRequest
             "oauth_version" => OauthRequest::$version,
             "oauth_nonce" => OauthRequest::generateNonce(),
             "oauth_timestamp" => OauthRequest::generateTimestamp(),
-            "oauth_consumer_key" => $consumer->key
+            "oauth_consumer_key" => $consumer->getKey()
         );
 
         if ($token) {
-            $defaults['oauth_token'] = $token->key;
+            $defaults['oauth_token'] = $token->getKey();
         }
 
         $parameters = array_merge($defaults, $parameters);
@@ -282,7 +287,7 @@ class OauthRequest
      * Build the Authorization header
      * @param  String $realm
      * @return String
-     * @throws Exception\ArrayNotSupportedInHeaders
+     * @throws Exception\ArrayNotSupportedInHeadersException
      */
     public function toHeader($realm = null)
     {
@@ -300,7 +305,7 @@ class OauthRequest
                 continue;
             }
             if (is_array($v)) {
-                throw new Exception\ArrayNotSupportedInHeaders();
+                throw new Exception\ArrayNotSupportedInHeadersException();
             }
             $out .= ($first) ? ' ' : ',';
             $out .= Util::urlencodeRfc3986($k) . '="' . Util::urlencodeRfc3986($v) . '"';
